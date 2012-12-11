@@ -20,3 +20,13 @@ _cgo_export.*
 _testmain.go
 
 *.exe
+
+nwatowav
+
+*.nwa
+*.nwk
+*.wav
+*.ovk
+*.ogg
+
+*.profile
