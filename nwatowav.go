@@ -44,20 +44,17 @@ func main() {
 	case strings.Contains(*inputfile, ".nwa"):
 		{
 			filetype = NWA
-			outfilename = strings.TrimRight(*inputfile, ".nwa")
 			outext = "wav"
 		}
 	case strings.Contains(*inputfile, ".nwk"):
 		{
 			filetype = NWK
-			outfilename = strings.TrimRight(*inputfile, ".nwk")
 			headblksz = 12
 			outext = "wav"
 		}
 	case strings.Contains(*inputfile, ".ovk"):
 		{
 			filetype = OVK
-			outfilename = strings.TrimRight(*inputfile, ".ovk")
 			headblksz = 16
 			outext = "ogg"
 		}
@@ -65,6 +62,8 @@ func main() {
 	if filetype == NONE {
 		log.Fatal("This program can only handle .nwa/.nwk/.ovk files right now.")
 	}
+
+	outfilename = strings.Split(*inputfile, ".")[0]
 
 	if filetype == NWA {
 		var data io.Reader
