@@ -14,10 +14,10 @@ import (
 
 var inputfile = flag.String("inputfile", "", "path to the input file.")
 
-type FileType int
+type fileType int
 
 const (
-	NONE  FileType = iota
+	NONE  fileType = iota
 	NWA
 	NWK
 	OVK
@@ -37,7 +37,7 @@ func main() {
 	}
 
 	var outfilename, outext, outpath string
-	var filetype FileType
+	var filetype fileType
 	var headblksz int64
 
 	switch {
@@ -67,7 +67,7 @@ func main() {
 
 	if filetype == NWA {
 		var data io.Reader
-		if data, err = nwa.DecodeAsWav(file); err != nil {
+		if data, err = nwa.NewNwaFile(file); err != nil {
 			log.Fatal(err)
 		}
 
@@ -111,40 +111,41 @@ func main() {
 			binary.Read(buffer, binary.LittleEndian, &tblorigsiz[i])
 		}
 
+		c := make(chan int, indexcount)
 		for i=0;i<indexcount;i++ {
 			if tbloff[i] <= 0 || tblsiz[i] <= 0 {
 				log.Fatalf("Invalid table[%d]: cnt %d, off %d, size %d\n", i, tblcnt[i], tbloff[i], tblsiz[i])
 				continue
 			}
-
-			var outdata io.Reader
 			buffer := new(bytes.Buffer)
 			file.Seek(int64(tbloff[i]), 0)
 			if count, err := io.CopyN(buffer, file, int64(tblsiz[i])); count != int64(tblsiz[i]) || err != nil {
 				log.Fatalf("Couldn't read the data for table[%d]: cnt %d, off %d, size %d\n", i, tblcnt[i], tbloff[i], tblsiz[i])
 			}
-
-			if filetype == NWK {
-				if outdata, err = nwa.DecodeAsWav(buffer); err != nil {
-					log.Fatal(err)
-				}
-			} else {
-				outdata = buffer
-			}
-
 			outpath = fmt.Sprintf("%s-%d.%s", outfilename, tblcnt[i], outext)
-
-			var out *os.File
-			out, err = os.Create(outpath)
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer out.Close()
-
-			if _, err = io.Copy(out, outdata); err != nil {
-				log.Fatal(err)
-			}
+			go doDecode(filetype, outpath, buffer, c)
 		}
-
+		for i=0;i<indexcount;i++ {
+			<-c
+		}
 	}
+}
+
+func doDecode(filetype fileType, filename string, data io.Reader, c chan int) {
+	var err error
+	if filetype == NWK {
+		if data, err = nwa.NewNwaFile(data); err != nil {
+					log.Fatal(err)
+		}
+	}
+	var out *os.File
+	out, err = os.Create(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer out.Close()
+	if _, err = io.Copy(out, data); err != nil {
+		log.Fatal(err)
+	}
+	c<-1
 }
