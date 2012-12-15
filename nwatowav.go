@@ -17,7 +17,7 @@ var inputfile = flag.String("inputfile", "", "path to the input file.")
 type fileType int
 
 const (
-	NONE  fileType = iota
+	NONE fileType = iota
 	NWA
 	NWK
 	OVK
@@ -100,7 +100,7 @@ func main() {
 		tblorigsiz := make([]int32, indexcount)
 
 		var i int32
-		for i=0;i<indexcount;i++ {
+		for i = 0; i < indexcount; i++ {
 			buffer := new(bytes.Buffer)
 			if count, err := io.CopyN(buffer, file, headblksz); count != headblksz || err != nil {
 				log.Fatal("Couldn't read the index entries!")
@@ -112,40 +112,51 @@ func main() {
 		}
 
 		c := make(chan int, indexcount)
-		for i=0;i<indexcount;i++ {
+		for i = 0; i < indexcount; i++ {
 			if tbloff[i] <= 0 || tblsiz[i] <= 0 {
 				log.Fatalf("Invalid table[%d]: cnt %d, off %d, size %d\n", i, tblcnt[i], tbloff[i], tblsiz[i])
 				continue
 			}
-			buffer := new(bytes.Buffer)
-			file.Seek(int64(tbloff[i]), 0)
-			if count, err := io.CopyN(buffer, file, int64(tblsiz[i])); count != int64(tblsiz[i]) || err != nil {
-				log.Fatalf("Couldn't read the data for table[%d]: cnt %d, off %d, size %d\n", i, tblcnt[i], tbloff[i], tblsiz[i])
-			}
 			outpath = fmt.Sprintf("%s-%d.%s", outfilename, tblcnt[i], outext)
-			go doDecode(filetype, outpath, buffer, c)
+			go doDecode(filetype, outpath, *inputfile, tbloff[i], tblsiz[i], c)
 		}
-		for i=0;i<indexcount;i++ {
+		for i = 0; i < indexcount; i++ {
 			<-c
 		}
 	}
 }
 
-func doDecode(filetype fileType, filename string, data io.Reader, c chan int) {
-	var err error
-	if filetype == NWK {
-		if data, err = nwa.NewNwaFile(data); err != nil {
-					log.Fatal(err)
-		}
+func doDecode(filetype fileType, filename string, datafile string, offset int32, size int32, c chan int) {
+	var count int64
+	var data io.Reader
+
+	file, err := os.Open(datafile)
+	defer file.Close()
+	if err != nil {
+		log.Fatal(err)
 	}
-	var out *os.File
-	out, err = os.Create(filename)
+
+	buffer := new(bytes.Buffer)
+	file.Seek(int64(offset), 0)
+	if count, err = io.CopyN(buffer, file, int64(size)); count != int64(size) || err != nil {
+		log.Fatalf("Couldn't read the data for filename %s: off %d, size %d. Error: %s\n", filename, offset, size, err)
+	}
+
+	if filetype == NWK {
+		if data, err = nwa.NewNwaFile(buffer); err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		data = buffer
+	}
+
+	out, err := os.Create(filename)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer out.Close()
-	if _, err = io.Copy(out, data); err != nil {
+	if _, err := io.Copy(out, data); err != nil {
 		log.Fatal(err)
 	}
-	c<-1
+	c <- 1
 }
