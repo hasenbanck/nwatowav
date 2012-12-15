@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"runtime"
 	"strings"
 )
 
@@ -29,6 +30,8 @@ func main() {
 	if *inputfile == "" {
 		log.Fatal("You need to define an input file!")
 	}
+
+	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	file, err := os.Open(*inputfile)
 	defer file.Close()

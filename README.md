@@ -15,13 +15,7 @@ cd nwatowav
 
 go build
 
-./nwatowav -h
-
-## Multithreading
-This programm is using multithrading. To use more then one thread, use the
-GOMAXPROCS environment variable to specifie how many OS threads to spawn:
-
-GOMAXPROCS=4 ./nwatowav --inputfile="FILE.nwk"
+./nwatowav --inputfile="FILENAME"
 
 ## LICENSE
 This programm is licensed under the GNU General Public License version 3
