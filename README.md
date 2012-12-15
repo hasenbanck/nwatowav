@@ -10,8 +10,11 @@ library.
 
 ## INSTALLATION
 git clone github.com/go-rlvm/nwatowav
+
 cd nwatowav
+
 go build
+
 ./nwatowav -h
 
 ## Multithreading
