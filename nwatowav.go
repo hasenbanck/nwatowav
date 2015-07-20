@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"flag"
 	"fmt"
-	"github.com/go-rlvm/nwa"
+	"github.com/hasenbanck/nwa"
 	"io"
 	"log"
 	"os"
